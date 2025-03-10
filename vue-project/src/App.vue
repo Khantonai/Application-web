@@ -6,6 +6,7 @@ import RenderData from './components/RenderData.vue'
 import PlaceholderMessage from './components/PlaceholderMessage.vue'
 
 import normalizeString from './utils/normalize.ts'
+import convertToStartWordRegex from './utils/regex.ts'
 
 let results = [
   {
@@ -1173,21 +1174,15 @@ function sortUsers(data, ageOrder) {
   )
 }
 
-// convert search input string into an array of regex
-function getSearchFilterArray(searchInput) {
-  let textArray = normalizeString(searchInput).split(' ')
-  return textArray.map((text) => new RegExp(String.raw`^${text}`))
-}
 
 
-function searchUsers(data, searchInput) {
-  searchValue.value = searchInput
-  // console.log(searchInput)
-      if (!searchInput || searchInput.trim() === "") {
+
+function searchUsers(data) {
+      if (!searchValue.value || searchValue.value.trim() === "") {
         modifiedResults.value = data;
       }
 
-      let searchFilterArray = getSearchFilterArray(searchInput);
+      let searchFilterArray = convertToStartWordRegex(searchValue.value);
 
       modifiedResults.value = data.filter(user => {
         return searchFilterArray.every(re => {
@@ -1196,13 +1191,6 @@ function searchUsers(data, searchInput) {
           return firstName.match(re) || lastName.match(re);
         });
       });
-      // return data.filter(user => {
-      //   return searchFilterArray.every(re => {
-      //     const firstName = normalizeString(user.name.first);
-      //     const lastName = normalizeString(user.name.last);
-      //     return firstName.match(re) || lastName.match(re);
-      //   });
-      // });
     }
 </script>
 
@@ -1234,7 +1222,7 @@ function searchUsers(data, searchInput) {
       </div> -->
       <div>
         <label for="search">Rechercher</label>
-        <input type="text" class="filter" :value="searchValue" @input="event => searchUsers(results, event.target.value)" />
+        <input type="text" class="filter" v-model="searchValue" @input="searchUsers(results)" />
       </div>
       <!-- <div>
         <p>
