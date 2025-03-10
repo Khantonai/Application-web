@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <title>Vanilla JS Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.fluid.classless.min.css">
+</head>
+
+<body>
+  <main>
+    <div>
+      <h1>Vanilla JS Example</h1>
+      <hr>
+      <div style="display: flex; gap: 50px; align-items: center;">
+        <button id="fetch-users">Fetch Users</button>
+        <div>
+          <label for="gender">Filtrer par genre</label>
+          <select name="gender" id="gender" style="width: 200px;" class="filter">
+            <option value="all">Tout afficher</option>
+            <option value="male">Hommes</option>
+            <option value="female">Femmes</option>
+          </select>
+        </div>
+        <div>
+          <label for="age">Tri par âge</label>
+          <select name="age" id="age" style="width: 200px;" class="filter">
+            <option value="no">Pas de tri</option>
+            <option value="desc">Croisssant</option>
+            <option value="asc">Décroisssant</option>
+          </select>
+        </div>
+        <div>
+          <label for="search">Rechercher</label>
+          <input type="text" id="search" class="filter" style="width: 200px;">
+        </div>
+        <div>
+          <p><span id="current-length">0</span> sur <span id="total-length">0</span> utilisateurs affichés</p>
+        </div>
+      </div>
+      <table id="tbl-users">
+        <thead>
+          <tr>
+            <th>Photo</th>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Tel</th>
+            <th>Age</th>
+            <th>Genre</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="message">Appuyez sur "Fecth Users" pour avoir la liste des utilisateurs</p>
+  </main>
+
+  <script>
+    let results = [];
+    
+    let currentLength = document.getElementById('current-length');
+    let totalLength = document.getElementById('total-length');
+
+    // get users data
+    async function fetchUsers() {
+      try {
+        const response = await fetch('https://randomuser.me/api/?results=20');
+        const data = await response.json();
+        results = [...results, ...data.results];
+
+        renderUsers(modifiedUsers());
+
+        setMessage("");
+
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    }
+
+    // set the placeholder message
+    function setMessage(message) {
+      document.getElementById('message').innerText = message;
+    }
+
+    // convert specials characters to normal characters
+    function normalizeString(string) {
+      return string.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
+    // convert search input string into an array of regex
+    function getSearchFilterArray(searchInput) {
+      let textArray = normalizeString(searchInput).split(" ");
+      return textArray.map(text => new RegExp(String.raw`^${text}`));
+    }
+
+    // to get the list of users that match the search input (by first name and last name)
+    function searchUsers(data, searchInput) {
+      if (!searchInput || searchInput.trim() === "") {
+        return data;
+      }
+
+      let searchFilterArray = getSearchFilterArray(searchInput);
+
+      return data.filter(user => {
+        return searchFilterArray.every(re => {
+          const firstName = normalizeString(user.name.first);
+          const lastName = normalizeString(user.name.last);
+          return firstName.match(re) || lastName.match(re);
+        });
+      });
+    }
+
+    // to get the list of users by gender
+    function filterUsers(data, gender) {
+      return gender === "all" ? data : data.filter(user => user.gender === gender);
+    }
+
+    // to sort the list of users by age
+    function sortUsers(data, ageOrder) {
+      if (ageOrder === "no") {
+        return data;
+      }
+      return data.toSorted((a, b) => (ageOrder === "desc" ? a.dob.age - b.dob.age : b.dob.age - a.dob.age));
+    }
+
+    // to get the list of users with all the filters applied
+    function modifiedUsers() {
+      let searchInput = document.querySelector('#search').value;
+      let gender = document.querySelector('#gender').value;
+      let ageOrder = document.querySelector('#age').value;
+
+      let modifiedResults = searchUsers(results, searchInput);
+      modifiedResults = filterUsers(modifiedResults, gender);
+      modifiedResults = sortUsers(modifiedResults, ageOrder);
+
+      return modifiedResults;
+    }
+
+    // render the list of users
+    function renderUsers(users) {
+      const tbody = document.querySelector('#tbl-users tbody');
+      tbody.innerHTML = users.map(user => `
+        <tr>
+            <td><img src="${user.picture.thumbnail}" alt="${user.name.first} Photo"></td>
+            <td>${user.name.first} ${user.name.last}</td>
+            <td>${user.email}</td>
+            <td>${user.phone}</td>
+            <td>${user.dob.age}</td>
+            <td>${user.gender === "male" ? "👨" : "👩"}</td>
+        </tr>
+      `).join('');
+
+      setMessage(users.length === 0 ? "Aucun résultat trouvé" : "");
+      currentLength.innerText = users.length;
+      totalLength.innerText = results.length;
+
+    }
+
+    // event listeners to render the list of users at every key stroke
+    document.querySelector('#search').addEventListener('input', () => {
+      renderUsers(modifiedUsers());
+    });
+
+    // event listeners to render the list of users at every change of the filters
+    document.querySelectorAll('.filter').forEach(filter => {
+      filter.addEventListener('change', () => {
+        renderUsers(modifiedUsers());
+      });
+    });
+
+    // event listener to fetch users
+    document.getElementById('fetch-users').addEventListener('click', fetchUsers);
+  </script>
+</body>
+
+</html>
