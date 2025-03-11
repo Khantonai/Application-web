@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineProps<{
   data: Object,
-  displayColumn: Object,
+  displayColumns: Object,
 }>()
 
 function getNestedProperty(obj: any, path: string | Array<string>): any {
@@ -14,7 +14,7 @@ function getNestedProperty(obj: any, path: string | Array<string>): any {
 
 <template>
   <tr v-for="user in data">
-    <td v-for="(path, key) in displayColumn" :key="key">
+    <td v-for="(path, key) in displayColumns" :key="key">
 
       <template v-if="key === 'Photo'">
         <img :src="getNestedProperty(user, path)" :alt="`${user.name.first} Photo`" />
